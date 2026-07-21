@@ -28,6 +28,10 @@ const gameState = {
     score: 0
 };
 
+// Reusable Objects to prevent GC overhead
+const sharedProjBox = new THREE.Box3();
+const sharedEnemyBox = new THREE.Box3();
+
 // --- Initialization ---
 // --- Procedural Texture Generation ---
 function createNoiseTexture(width, height, baseColor, noiseIntensity) {
@@ -481,13 +485,13 @@ function updateProjectiles(delta) {
         // Collision Detection with Enemies
         let hit = false;
         // Simple bounding box collision
-        const projBox = new THREE.Box3().setFromObject(proj);
+        sharedProjBox.setFromObject(proj);
 
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            const enemyBox = new THREE.Box3().setFromObject(enemy);
+            sharedEnemyBox.setFromObject(enemy);
 
-            if (projBox.intersectsBox(enemyBox)) {
+            if (sharedProjBox.intersectsBox(sharedEnemyBox)) {
                 // Hit!
                 hit = true;
 
