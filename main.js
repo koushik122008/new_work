@@ -463,6 +463,12 @@ function updateEnemies(delta) {
         enemy.rotation.x += enemy.userData.rotSpeedX * delta;
         enemy.rotation.y += enemy.userData.rotSpeedY * delta;
 
+        // ⚡ Bolt: Cache bounding box to avoid recomputing O(Projectiles * Enemies) times
+        if (!enemy.userData.box) {
+            enemy.userData.box = new THREE.Box3();
+        }
+        enemy.userData.box.setFromObject(enemy);
+
         // Remove if it passes behind the camera/player
         if (enemy.position.z > 50) {
             scene.remove(enemy);
@@ -470,6 +476,9 @@ function updateEnemies(delta) {
         }
     }
 }
+
+// ⚡ Bolt: Global reusable bounding box for projectiles to prevent memory allocation per frame
+const _projBox = new THREE.Box3();
 
 function updateProjectiles(delta) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -481,13 +490,14 @@ function updateProjectiles(delta) {
         // Collision Detection with Enemies
         let hit = false;
         // Simple bounding box collision
-        const projBox = new THREE.Box3().setFromObject(proj);
+        _projBox.setFromObject(proj);
 
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            const enemyBox = new THREE.Box3().setFromObject(enemy);
+            // ⚡ Bolt: Reuse the cached bounding box from updateEnemies
+            const enemyBox = enemy.userData.box;
 
-            if (projBox.intersectsBox(enemyBox)) {
+            if (enemyBox && _projBox.intersectsBox(enemyBox)) {
                 // Hit!
                 hit = true;
 
