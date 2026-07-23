@@ -19,6 +19,9 @@ let muzzleFlashSprite;
 let muzzleFlashTimer = 0;
 let textureLoader = new THREE.TextureLoader();
 
+// Performance Optimization Caches
+const tempProjBox = new THREE.Box3();
+
 // Procedural Textures
 let groundTexture, metalTexture, enemyTexture;
 
@@ -463,6 +466,13 @@ function updateEnemies(delta) {
         enemy.rotation.x += enemy.userData.rotSpeedX * delta;
         enemy.rotation.y += enemy.userData.rotSpeedY * delta;
 
+        // Update cached bounding box for collision detection
+        // By doing this once per frame per enemy instead of O(N*M) in updateProjectiles, we save massive CPU cycles
+        if (!enemy.userData.box) {
+            enemy.userData.box = new THREE.Box3();
+        }
+        enemy.userData.box.setFromObject(enemy);
+
         // Remove if it passes behind the camera/player
         if (enemy.position.z > 50) {
             scene.remove(enemy);
@@ -480,14 +490,16 @@ function updateProjectiles(delta) {
 
         // Collision Detection with Enemies
         let hit = false;
-        // Simple bounding box collision
-        const projBox = new THREE.Box3().setFromObject(proj);
+
+        // Use a single pre-allocated bounding box to prevent GC pressure
+        tempProjBox.setFromObject(proj);
 
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            const enemyBox = new THREE.Box3().setFromObject(enemy);
+            // Use the bounding box cached during updateEnemies to avoid O(N*M) recalculations
+            const enemyBox = enemy.userData.box;
 
-            if (projBox.intersectsBox(enemyBox)) {
+            if (enemyBox && tempProjBox.intersectsBox(enemyBox)) {
                 // Hit!
                 hit = true;
 

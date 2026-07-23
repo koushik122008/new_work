@@ -1,0 +1,3 @@
+## 2024-07-23 - Avoid O(N*M) THREE.Box3.setFromObject in nested loops
+**Learning:** Found a severe performance bottleneck where `new THREE.Box3().setFromObject(enemy)` was being called inside a nested O(N*M) loop (Projectiles x Enemies). `setFromObject` traverses the object's entire hierarchy and computes world bounds, making it very expensive. Creating new Box3 objects per iteration also causes massive garbage collection spikes.
+**Action:** Always compute enemy bounding boxes once per frame in the outer loop (e.g. `updateEnemies`) and cache them in `userData` or a parallel array. Pre-allocate a single `THREE.Box3` for the projectiles to reuse during intersection checks.
