@@ -471,7 +471,18 @@ function updateEnemies(delta) {
     }
 }
 
+// ⚡ Bolt: Cache Box3 instances to avoid expensive object creation and geometry traversal in the hot loop
+const _projBox = new THREE.Box3();
+
 function updateProjectiles(delta) {
+    // ⚡ Bolt: Pre-calculate enemy bounding boxes once per frame instead of per-projectile
+    // This reduces setFromObject calls from O(Projectiles * Enemies) to O(Enemies)
+    const enemyBoxes = [];
+    for (let j = 0; j < enemies.length; j++) {
+        const box = new THREE.Box3().setFromObject(enemies[j]);
+        enemyBoxes.push({ box: box, enemy: enemies[j] });
+    }
+
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
 
@@ -480,23 +491,31 @@ function updateProjectiles(delta) {
 
         // Collision Detection with Enemies
         let hit = false;
-        // Simple bounding box collision
-        const projBox = new THREE.Box3().setFromObject(proj);
 
-        for (let j = enemies.length - 1; j >= 0; j--) {
-            const enemy = enemies[j];
-            const enemyBox = new THREE.Box3().setFromObject(enemy);
+        // ⚡ Bolt: Reuse the same Box3 instance for the projectile
+        _projBox.setFromObject(proj);
 
-            if (projBox.intersectsBox(enemyBox)) {
+        for (let j = enemyBoxes.length - 1; j >= 0; j--) {
+            const enemyData = enemyBoxes[j];
+
+            if (_projBox.intersectsBox(enemyData.box)) {
                 // Hit!
                 hit = true;
 
                 // Spawn Explosion
-                createExplosion(enemy.position);
+                createExplosion(enemyData.enemy.position);
 
                 // Remove Enemy
-                scene.remove(enemy);
-                enemies.splice(j, 1);
+                scene.remove(enemyData.enemy);
+
+                // Find and remove the actual enemy from the global array
+                const enemyIdx = enemies.indexOf(enemyData.enemy);
+                if (enemyIdx !== -1) {
+                    enemies.splice(enemyIdx, 1);
+                }
+
+                // Remove from our cached list so other projectiles don't hit it this frame
+                enemyBoxes.splice(j, 1);
 
                 // Update Score
                 gameState.score += 100;
