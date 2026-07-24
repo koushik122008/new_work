@@ -1,0 +1,3 @@
+## 2024-05-24 - Three.js setFromObject in Nested Loops
+**Learning:** Calling `THREE.Box3().setFromObject()` requires traversing the entire geometry of the object to compute its bounding box. When done inside an O(N*M) nested loop (e.g., checking collisions between N projectiles and M enemies), it causes severe performance bottlenecks due to repeated, redundant geometry traversal and object allocation.
+**Action:** Always pre-calculate bounding boxes of targets (like enemies) once per frame before the collision loop. Also, cache and reuse `THREE.Box3` instances to avoid memory allocation overhead during the hot loop.
