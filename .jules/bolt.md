@@ -1,0 +1,3 @@
+## 2024-05-24 - [Three.js Object Traversal Bottleneck]
+**Learning:** Calling `THREE.Box3().setFromObject(enemy)` is highly expensive because it traverses all vertices of the nested groups and geometries (e.g., core and armor plates) every time it is called. Doing this inside a nested loop (Projectiles x Enemies) causes O(N*M) performance degradation.
+**Action:** When performing collision detection with complex Three.js objects in a game loop, always pre-calculate bounding boxes once per frame per entity (O(N)), rather than calculating them dynamically inside nested collision checks.
