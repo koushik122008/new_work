@@ -472,6 +472,13 @@ function updateEnemies(delta) {
 }
 
 function updateProjectiles(delta) {
+    // ⚡ Bolt: Pre-calculate enemy bounding boxes to avoid O(N*M) recalculation
+    // This reduces setFromObject calls from (Projectiles * Enemies) to just (Enemies)
+    const enemyBoxes = [];
+    for (let j = 0; j < enemies.length; j++) {
+        enemyBoxes.push(new THREE.Box3().setFromObject(enemies[j]));
+    }
+
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
 
@@ -485,7 +492,7 @@ function updateProjectiles(delta) {
 
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            const enemyBox = new THREE.Box3().setFromObject(enemy);
+            const enemyBox = enemyBoxes[j];
 
             if (projBox.intersectsBox(enemyBox)) {
                 // Hit!
@@ -497,6 +504,7 @@ function updateProjectiles(delta) {
                 // Remove Enemy
                 scene.remove(enemy);
                 enemies.splice(j, 1);
+                enemyBoxes.splice(j, 1); // Keep synchronized with enemies array
 
                 // Update Score
                 gameState.score += 100;
