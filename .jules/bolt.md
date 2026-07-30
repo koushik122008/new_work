@@ -1,0 +1,3 @@
+## 2024-07-30 - [Three.js Object Instantiation Leak]
+**Learning:** Instantiating new THREE.Geometry and THREE.Material objects inside frequent event loops (like firing projectiles or spawning enemies) without ever calling `.dispose()` on them leads to unbounded memory and GPU resource growth in this architecture.
+**Action:** Always pre-allocate shared geometries and materials once during application initialization and reuse them across instances of THREE.Mesh to maintain stable memory usage.
