@@ -1,0 +1,3 @@
+## 2024-03-24 - [Three.js Object Pre-allocation]
+**Learning:** This Three.js codebase rapidly spawns and removes game objects (projectiles, enemies). Creating new Geometries (`CylinderGeometry`, `DodecahedronGeometry`, `ConeGeometry`) and Materials (`MeshBasicMaterial`, `MeshStandardMaterial`) on every spawn function call causes severe memory leaks and GPU resource exhaustion because Three.js does not automatically clean up these objects from GPU memory unless `.dispose()` is explicitly called.
+**Action:** Always pre-allocate shared geometries and materials globally once during initialization (e.g., in `init()`) and reuse them for all instances of identical objects spawned in the game loop.
