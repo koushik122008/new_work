@@ -1,0 +1,3 @@
+## 2023-10-24 - [Three.js Object Instantiation Overload]
+**Learning:** In this Three.js codebase, geometries and materials must be shared/pre-allocated for frequently spawned entities (like projectiles or enemies). Creating new instances inside tight loops or frequent events (like `spawnEnemy` or `fireProjectile`) leads to severe memory and GPU resource leaks if `.dispose()` is not called upon removal.
+**Action:** Always pre-allocate shared geometries and materials once during initialization (`init()`) and reuse them in the game loop to prevent resource exhaustion and ensure optimal performance.
