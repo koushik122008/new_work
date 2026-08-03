@@ -1,0 +1,3 @@
+## 2024-05-24 - Three.js Object Allocation Performance
+**Learning:** Three.js objects (like Geometry and Material) created continuously in the game loop (e.g., during `spawnEnemy` or `fireProjectile`) will cause severe memory and GPU resource leaks if not disposed properly. The current codebase was generating new Geometry and Material instances on every function call without using `.dispose()`.
+**Action:** Always pre-allocate shared geometries and materials once during initialization (e.g., `initSharedResources`) and pass them to the `THREE.Mesh` constructor to reuse them across multiple instances.
