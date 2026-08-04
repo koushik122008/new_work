@@ -32,6 +32,14 @@ const gameState = {
 const sharedProjBox = new THREE.Box3();
 const sharedEnemyBox = new THREE.Box3();
 
+// Reusable Geometries and Materials for optimization
+let sharedProjectileGeometry;
+let sharedProjectileMaterial;
+let sharedEnemyCoreGeometry;
+let sharedEnemyCoreMaterial;
+let sharedEnemySpikeGeometry;
+let sharedEnemySpikeMaterial;
+
 // --- Initialization ---
 // --- Procedural Texture Generation ---
 function createNoiseTexture(width, height, baseColor, noiseIntensity) {
@@ -69,6 +77,27 @@ function init() {
     metalTexture.repeat.set(2, 2);
 
     enemyTexture = createNoiseTexture(256, 256, '#aa2222', 80);
+
+    // Pre-allocate shared geometries and materials
+    sharedProjectileGeometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
+    sharedProjectileGeometry.rotateX(Math.PI / 2);
+    sharedProjectileMaterial = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+
+    sharedEnemyCoreGeometry = new THREE.DodecahedronGeometry(2);
+    sharedEnemyCoreMaterial = new THREE.MeshStandardMaterial({
+        map: enemyTexture,
+        color: 0xaa0000,
+        metalness: 0.8,
+        roughness: 0.2
+    });
+
+    sharedEnemySpikeGeometry = new THREE.ConeGeometry(0.5, 3, 4);
+    sharedEnemySpikeMaterial = new THREE.MeshStandardMaterial({
+        map: metalTexture,
+        color: 0x333333,
+        metalness: 0.9,
+        roughness: 0.5
+    });
 
     // 1. Scene Setup
     scene = new THREE.Scene();
@@ -298,13 +327,8 @@ function onMouseDown(event) {
 }
 
 function fireProjectile() {
-    // Projectile visual - glowing laser tracer
-    const geometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
-    // Rotate the geometry so it aligns with the Z axis (forward)
-    // instead of the Y axis, so lookAt works correctly.
-    geometry.rotateX(Math.PI / 2);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const projectile = new THREE.Mesh(geometry, material);
+    // Projectile visual - glowing laser tracer (using shared geometry and material)
+    const projectile = new THREE.Mesh(sharedProjectileGeometry, sharedProjectileMaterial);
 
     // Start at player position
     projectile.position.copy(player.position);
@@ -413,28 +437,13 @@ function spawnEnemy() {
     const enemy = new THREE.Group();
 
     // Core body
-    const coreGeo = new THREE.DodecahedronGeometry(2);
-    const coreMat = new THREE.MeshStandardMaterial({
-        map: enemyTexture,
-        color: 0xaa0000,
-        metalness: 0.8,
-        roughness: 0.2
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
+    const core = new THREE.Mesh(sharedEnemyCoreGeometry, sharedEnemyCoreMaterial);
     core.castShadow = true;
     enemy.add(core);
 
     // Armor plates/spikes
-    const spikeGeo = new THREE.ConeGeometry(0.5, 3, 4);
-    const spikeMat = new THREE.MeshStandardMaterial({
-        map: metalTexture,
-        color: 0x333333,
-        metalness: 0.9,
-        roughness: 0.5
-    });
-
     for (let i = 0; i < 4; i++) {
-        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+        const spike = new THREE.Mesh(sharedEnemySpikeGeometry, sharedEnemySpikeMaterial);
         spike.rotation.x = Math.PI / 2;
         spike.position.set(Math.cos(i * Math.PI / 2) * 2, Math.sin(i * Math.PI / 2) * 2, 0);
         spike.castShadow = true;
