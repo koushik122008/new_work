@@ -32,6 +32,11 @@ const gameState = {
 const sharedProjBox = new THREE.Box3();
 const sharedEnemyBox = new THREE.Box3();
 
+// ⚡ Bolt: Lazily-initialized shared geometries and materials to prevent GC overhead
+let sharedEnemyCoreGeo, sharedEnemyCoreMat;
+let sharedEnemySpikeGeo, sharedEnemySpikeMat;
+let sharedProjectileGeo, sharedProjectileMat;
+
 // --- Initialization ---
 // --- Procedural Texture Generation ---
 function createNoiseTexture(width, height, baseColor, noiseIntensity) {
@@ -298,13 +303,15 @@ function onMouseDown(event) {
 }
 
 function fireProjectile() {
-    // Projectile visual - glowing laser tracer
-    const geometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
-    // Rotate the geometry so it aligns with the Z axis (forward)
-    // instead of the Y axis, so lookAt works correctly.
-    geometry.rotateX(Math.PI / 2);
-    const material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const projectile = new THREE.Mesh(geometry, material);
+    // ⚡ Bolt: Use lazily initialized shared geometry and material
+    if (!sharedProjectileGeo) {
+        sharedProjectileGeo = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
+        // Rotate the geometry so it aligns with the Z axis (forward)
+        // instead of the Y axis, so lookAt works correctly.
+        sharedProjectileGeo.rotateX(Math.PI / 2);
+        sharedProjectileMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    }
+    const projectile = new THREE.Mesh(sharedProjectileGeo, sharedProjectileMat);
 
     // Start at player position
     projectile.position.copy(player.position);
@@ -412,29 +419,33 @@ function spawnEnemy() {
     // Group for complex enemy shape
     const enemy = new THREE.Group();
 
+    // ⚡ Bolt: Use lazily initialized shared geometries and materials
+    if (!sharedEnemyCoreGeo) {
+        sharedEnemyCoreGeo = new THREE.DodecahedronGeometry(2);
+        sharedEnemyCoreMat = new THREE.MeshStandardMaterial({
+            map: enemyTexture,
+            color: 0xaa0000,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+
+        sharedEnemySpikeGeo = new THREE.ConeGeometry(0.5, 3, 4);
+        sharedEnemySpikeMat = new THREE.MeshStandardMaterial({
+            map: metalTexture,
+            color: 0x333333,
+            metalness: 0.9,
+            roughness: 0.5
+        });
+    }
+
     // Core body
-    const coreGeo = new THREE.DodecahedronGeometry(2);
-    const coreMat = new THREE.MeshStandardMaterial({
-        map: enemyTexture,
-        color: 0xaa0000,
-        metalness: 0.8,
-        roughness: 0.2
-    });
-    const core = new THREE.Mesh(coreGeo, coreMat);
+    const core = new THREE.Mesh(sharedEnemyCoreGeo, sharedEnemyCoreMat);
     core.castShadow = true;
     enemy.add(core);
 
     // Armor plates/spikes
-    const spikeGeo = new THREE.ConeGeometry(0.5, 3, 4);
-    const spikeMat = new THREE.MeshStandardMaterial({
-        map: metalTexture,
-        color: 0x333333,
-        metalness: 0.9,
-        roughness: 0.5
-    });
-
     for (let i = 0; i < 4; i++) {
-        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+        const spike = new THREE.Mesh(sharedEnemySpikeGeo, sharedEnemySpikeMat);
         spike.rotation.x = Math.PI / 2;
         spike.position.set(Math.cos(i * Math.PI / 2) * 2, Math.sin(i * Math.PI / 2) * 2, 0);
         spike.castShadow = true;
